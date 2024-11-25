@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>stuff</title>
+    <link rel="stylesheet" href="static/style.css">
+  </head>
+  <body>
+    <div class="flex-container-plz">
+      <div class="options">
+        <label for="inputs">Jeu de données</label>
+        <select id="inputs" name="inputs">
+          <option value="artificial">Artificial data</option>
+          <option value="boeing_airflow">Boeing airflow data</option>
+        </select>
+        <br/>
+        <label for="algorithms" name="algorithme">algorithme d'analyse</label>
+        <select id="algorithms">
+          <option value="none">no analysis</option>
+          <option value="MDS">MDS</option>
+          <option value="LLE">LLE</option>
+        </select>
+        <button id="export" style="display:none">export</button>
+        <div id="algo-controls">
+        </div>
+      </div>
+      <img id="detah-viz"></img>
+    </div>
+  </body>
+  <script>
+   algoparams = {
+     "MDS":[
+       {"name":"max_iter", default:45, "input_type":"number"}
+     ],
+     "LLE":[
+       {"name":"method", "input_type":"select", "choices":["standard", "ltsa", "hessian", "modified"]},
+       {"name":"n_neighbors", default:12, "input_type":"number"}
+     ],
+     "none":[]
+   }
+   function value_plz(elem) {
+     if (elem.tagName === "INPUT") {
+       return elem.value
+     } else if (elem.tagName === "SELECT") {
+       return elem.selectedOptions[0].value
+     }
+   }
+   function get_the_good_algoparams() {
+     controls_div = document.getElementById("algo-controls")
+     controls_div.innerHTML = ""
+     current_algo = value_plz(document.getElementById("algorithms"))
+     let params = algoparams[current_algo]
+     for (const param of params) {
+       if (param.input_type === "select") {
+         select = document.createElement("select")
+         select.id = param.name
+         for (const val of param.choices) {
+           let option = document.createElement("option")
+           option.value = val
+           option.innerHTML = val
+           select.appendChild(option)
+         }
+         controls_div.appendChild(select)
+         select.onchange = () => getgraph("/gimmee-a-graph")
+       } else {
+         input = document.createElement("input")
+         input.type = param.input_type
+         input.name = param.name
+         input.id = param.name
+         input.value = param.default
+         label = document.createElement("label")
+         label.for = param.name
+         label.innerHTML = param.name
+         controls_div.appendChild(input)
+         controls_div.appendChild(label)
+         input.onchange = () => getgraph("/gimmee-a-graph")
+       }
+     }
+   }
+   async function getgraph(which) {
+     try {
+       let paramstring = ""
+       let current_dataset = value_plz(document.getElementById("inputs"))
+       if (which !== "/detah-picture") {
+         current_algo = document.getElementById("algorithms").selectedOptions[0].value
+         let params = algoparams[current_algo]
+         paramstring = "?algo=" + current_algo + "&dataset=" + current_dataset + "&"
+         for (const param of params) {
+           param_val = value_plz(document.getElementById(param.name))
+           paramstring+= param.name + "=" + param_val + "&"
+         }
+       } else {
+         paramstring="?dataset=" + current_dataset
+       }
+       document.querySelector("img").src = "static/sablier.png"
+       const response = await fetch(which+paramstring);
+       if (!response.ok) {
+         throw new Error(`Response status: ${response.status}`);
+       }
+       const body = await response.text();
+       console.log(body);
+       document.querySelector("img").src = body
+     } catch (error) {
+       console.error(error.message);
+     }
+   }
+
+   getgraph("/detah-picture")
+   let button = document.getElementById("export")
+   console.log('button: ', button)
+   button.onclick = () => getgraph("/gimmee-a-graph")
+   get_the_good_algoparams()
+   document.getElementById("algorithms").onchange = () => {
+     get_the_good_algoparams()
+     if (current_algo = document.getElementById("algorithms").selectedOptions[0].value === "none") {
+       getgraph("/detah-picture")
+     } else {
+       getgraph("/gimmee-a-graph")
+     }
+   }
+   document.getElementById("inputs").onchange = () => {
+     /* get_the_good_algoparams() */
+     if (current_algo = document.getElementById("algorithms").selectedOptions[0].value === "none") {
+       getgraph("/detah-picture")
+     } else {
+       getgraph("/gimmee-a-graph")
+     }
+   }
+  </script>
+</html>
